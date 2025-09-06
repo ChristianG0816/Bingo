@@ -15,13 +15,16 @@
       justify-content: center;
       min-height: 100vh;
       margin: 0;
-      gap: 20px;
+      /*gap: 20px;
+      padding: 10px;*/
     }
-    h1 { margin-bottom: 10px; }
+    h1 { margin-bottom: 10px; text-align: center; }
     .grid {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
       gap: 10px;
+      width: 100%;
+      max-width: 500px;
       margin-bottom: 10px;
     }
     .cell {
@@ -37,6 +40,8 @@
       user-select: none;
       font-weight: bold;
       min-height: 80px;
+      font-size: clamp(12px, 2vw, 18px); /* texto adaptable */
+      word-break: break-word;
     }
     .cell.marked {
       background: #22c55e;
@@ -55,30 +60,64 @@
     button:hover {
       background: #16a34a;
     }
-    .caller {
-      max-width: 600px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      justify-content: center;
-    }
-    .ball {
-      background: #1e293b;
-      border: 1px solid #334155;
-      padding: 5px 8px;
-      border-radius: 6px;
-      font-size: 12px;
-      transition: background 0.2s;
-    }
-    .ball.drawn {
-      background: #22c55e;
-      color: #000;
+    #bingoMessage {
+      background: #334155;
+      padding: 10px 20px;
+      border-radius: 8px;
+      margin-top: 10px;
       font-weight: bold;
+      display: none;
+      text-align: center;
+    }
+    #playerName {
+      padding: 5px;
+      border-radius: 5px;
+      border: none;
+      margin-bottom: 10px;
+      font-size: 16px;
+      width: 100%;
+      max-width: 300px;
+    }
+
+@media print {
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* centra horizontalmente */
+    justify-content: center; /* centra verticalmente */
+    height: 100vh; /* asegura que ocupe toda la página */
+    margin: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  button, #playerName {
+    display: none;
+  }
+}
+    /* Responsive para móviles */
+    @media (max-width: 500px) {
+      .grid {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 6px;
+      }
+      .cell {
+        min-height: 60px;
+        font-size: clamp(10px, 4vw, 16px);
+      }
     }
   </style>
 </head>
 <body>
   <h1>Bingo de Brawlers</h1>
+  <div id="bingoMessage"></div>
+<div style="display: flex; align-items: center; gap: 10px;">
+  <input type="text" id="playerName" placeholder="Escribe tu nombre" />
+  <button onclick="imprimirBingo()">🖨️ Imprimir</button>
+</div>
+
+  <!-- Elementos para imprimir -->
+  <h2 id="tituloImprimir" style="display:none; color: #000;">Bingo de Brawlers</h2>
+  <p id="nombreImprimir" style="display:none; color: #000;"></p>
   <div class="grid" id="grid"></div>
   <script>
     const brawlers = [
@@ -94,31 +133,75 @@
       "Barley","Spike","Rico","Brock","Bull","Colt","Shelly"
     ];
 
-    let bag = [];
-    let drawn = [];
-
     function shuffled(array) {
       return array.map(v => [Math.random(), v]).sort((a,b)=>a[0]-b[0]).map(x => x[1]);
     }
 
-    function generateCard() {
-      const grid = document.getElementById('grid');
-      grid.innerHTML = '';
-      const randomBrawlers = shuffled(brawlers).slice(0, 25);
-      randomBrawlers[12] = 'FREE'; // espacio central
+    let cells = [];
 
-      randomBrawlers.forEach(name => {
-        const cell = document.createElement('div');
-        cell.className = 'cell';
-        cell.textContent = name;
-        if (name === 'FREE') cell.classList.add('marked');
-        cell.addEventListener('click', () => cell.classList.toggle('marked'));
-        grid.appendChild(cell);
-      });
+    function generateCard() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  const randomBrawlers = shuffled(brawlers).slice(0, 25);
+  
+  // Celda central aleatoria que no repita
+  randomBrawlers[12] = shuffled(brawlers).find(name => !randomBrawlers.includes(name));
+
+  cells = [];
+  document.getElementById('bingoMessage').style.display = 'none';
+
+  randomBrawlers.forEach((name, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.textContent = name;
+    cell.addEventListener('click', () => {
+      cell.classList.toggle('marked');
+      checkBingo();
+    });
+    cells.push(cell);
+    grid.appendChild(cell);
+  });
+}
+
+
+    function checkBingo() {
+      const messageDiv = document.getElementById('bingoMessage');
+      const player = document.getElementById('playerName').value || 'Jugador';
+      let bingo = false;
+      const size = 5;
+
+      // filas
+      for (let r = 0; r < size; r++) {
+        if (Array.from({length: size}, (_, i) => cells[r*size + i].classList.contains('marked')).every(Boolean)) bingo = true;
+      }
+      // columnas
+      for (let c = 0; c < size; c++) {
+        if (Array.from({length: size}, (_, i) => cells[c + i*size].classList.contains('marked')).every(Boolean)) bingo = true;
+      }
+      // diagonal principal
+      if (Array.from({length: size}, (_, i) => cells[i*(size+1)].classList.contains('marked')).every(Boolean)) bingo = true;
+      // diagonal secundaria
+      if (Array.from({length: size}, (_, i) => cells[(size-1)*(i+1)].classList.contains('marked')).every(Boolean)) bingo = true;
+
+      if (bingo) {
+        messageDiv.textContent = `🎉 ¡Bingo! Felicidades, ${player}!`;
+        messageDiv.style.display = 'block';
+      } else {
+        messageDiv.style.display = 'none';
+      }
+    }
+
+    function imprimirBingo() {
+      const nombre = document.getElementById('playerName').value || 'Jugador';
+      document.getElementById('tituloImprimir').style.display = 'block';
+      document.getElementById('nombreImprimir').textContent = 'Jugador: ' + nombre;
+      document.getElementById('nombreImprimir').style.display = 'block';
+      window.print();
+      document.getElementById('tituloImprimir').style.display = 'none';
+      document.getElementById('nombreImprimir').style.display = 'none';
     }
 
     generateCard();
-    resetCaller();
   </script>
 </body>
 </html>
