@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bingo de Brawlers</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      gap: 20px;
+    }
+    h1 { margin-bottom: 10px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .cell {
+      background: #1e293b;
+      border: 2px solid #334155;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+      font-weight: bold;
+      min-height: 80px;
+    }
+    .cell.marked {
+      background: #22c55e;
+      color: #000;
+    }
+    button {
+      background: #22c55e;
+      color: #000;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      margin: 5px;
+      font-size: 20px;
+    }
+    button:hover {
+      background: #16a34a;
+    }
+    .caller {
+      max-width: 1200px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+    .ball {
+      background: #1e293b;
+      border: 1px solid #334155;
+      padding: 5px 8px;
+      border-radius: 6px;
+      font-size: 20px;
+      transition: background 0.2s;
+    }
+    .ball.drawn {
+      background: #22c55e;
+      color: #000;
+      font-weight: bold;
+    }
+    /* Modal */
+    #modal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.8);
+      color: #fff;
+      font-size: 60px;
+      font-weight: bold;
+      text-align: center;
+      z-index: 1000;
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity 0.3s;
+      cursor: pointer;
+    }
+    #modal.show {
+      visibility: visible;
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <h1>Bingo de Brawlers</h1>
+  <div class="grid" id="grid"></div>
+  <div>
+    <button onclick="drawName()">Sacar nombre</button>
+    <button onclick="resetCaller()">Reiniciar bolillero</button>
+  </div>
+  <div class="caller" id="caller"></div>
+
+  <!-- Modal -->
+  <div id="modal" onclick="closeModal()"></div>
+
+  <script>
+    const brawlers = [
+      "Ziggy","Mina","Trunk","Alli","Kaze","Jae-Yong","Finx","Lumi","Ollie","Meeple",
+      "Buzz Lightyear","Juju","Shade","Kenji","Moe","Clancy","Berry","Lily","Draco","Angelo",
+      "Melodie","Larry & Lawrie","Kit","Mico","Charlie","Chuck","Pearl","Doug","Cordelius","Hank",
+      "Maisie","Willow","R-T","Mandy","Gray","Chester","Buster","Gus","Sam","Otis",
+      "Bonnie","Janet","Eve","Fang","Lola","Meg","Ash","Griff","Buzz","Grom",
+      "Squeak","Belle","Stu","Ruffs","Edgar","Byron","Lou","Amber","Colette","Surge",
+      "Sprout","Nani","Gale","Jacky","Max","Mr. P","Emz","Bea","Sandy","8-Bit",
+      "Bibi","Carl","Rosa","Leon","Tick","Gene","Frank","Penny","Darryl","Tara",
+      "Pam","Piper","Bo","Poco","Crow","Mortis","El Primo","Dynamike","Nita","Jessie",
+      "Barley","Spike","Rico","Brock","Bull","Colt","Shelly"
+    ];
+
+    let bag = [];
+    let drawn = [];
+
+    function shuffled(array) {
+      return array.map(v => [Math.random(), v]).sort((a,b)=>a[0]-b[0]).map(x => x[1]);
+    }
+
+    function generateCard() {
+      const grid = document.getElementById('grid');
+      grid.innerHTML = '';
+      const randomBrawlers = shuffled(brawlers).slice(0, 25);
+      randomBrawlers[12] = 'FREE'; // espacio central
+
+      randomBrawlers.forEach(name => {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.textContent = name;
+        if (name === 'FREE') cell.classList.add('marked');
+        cell.addEventListener('click', () => cell.classList.toggle('marked'));
+        grid.appendChild(cell);
+      });
+    }
+
+    function clearMarks() {
+      document.querySelectorAll('.cell').forEach(c => {
+        if (c.textContent !== 'FREE') c.classList.remove('marked');
+      });
+    }
+
+    function resetCaller() {
+      bag = [...brawlers];
+      drawn = [];
+      renderCaller();
+    }
+
+    function drawName() {
+      if (bag.length === 0) return;
+      const index = Math.floor(Math.random() * bag.length);
+      const name = bag.splice(index, 1)[0];
+      drawn.push(name);
+      renderCaller();
+      showModal(name);
+    }
+
+    function renderCaller() {
+      const callerDiv = document.getElementById('caller');
+      callerDiv.innerHTML = '';
+      brawlers.forEach(name => {
+        const ball = document.createElement('div');
+        ball.className = 'ball' + (drawn.includes(name) ? ' drawn' : '');
+        ball.textContent = name;
+        callerDiv.appendChild(ball);
+      });
+    }
+
+    // Modal functions
+    const modal = document.getElementById('modal');
+    function showModal(name) {
+      modal.textContent = name;
+      modal.classList.add('show');
+    }
+    function closeModal() {
+      modal.classList.remove('show');
+    }
+
+    // Inicializar
+   // generateCard();
+    resetCaller();
+  </script>
+</body>
+</html>
