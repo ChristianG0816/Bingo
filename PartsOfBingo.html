@@ -79,8 +79,6 @@
       .cell { min-height: 60px; font-size: clamp(10px, 4vw, 16px); }
     }
   </style>
-
-  <!-- html2canvas -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 <body>
@@ -90,7 +88,6 @@
     <input type="text" id="playerName" placeholder="Escribe tu nombre" />
     <button onclick="guardarComoImagen()">📸 Guardar como imagen</button>
   </div>
-
   <div class="grid" id="grid"></div>
 
   <script>
@@ -118,7 +115,7 @@
       grid.innerHTML = '';
       const randomBrawlers = shuffled(brawlers).slice(0, 25);
 
-      // Celda central aleatoria
+      // Celda central "FREE" marcada
       randomBrawlers[12] = shuffled(brawlers).find(name => !randomBrawlers.includes(name));
 
       cells = [];
@@ -128,6 +125,7 @@
         const cell = document.createElement('div');
         cell.className = 'cell';
         cell.textContent = name;
+        /*if(i===12) cell.classList.add('marked');*/
         cell.addEventListener('click', () => {
           cell.classList.toggle('marked');
           checkBingo();
@@ -144,15 +142,16 @@
       const size = 5;
 
       // filas
-      for (let r = 0; r < size; r++) {
+      for (let r = 0; r < size; r++)
         if (Array.from({length: size}, (_, i) => cells[r*size + i].classList.contains('marked')).every(Boolean)) bingo = true;
-      }
+
       // columnas
-      for (let c = 0; c < size; c++) {
+      for (let c = 0; c < size; c++)
         if (Array.from({length: size}, (_, i) => cells[c + i*size].classList.contains('marked')).every(Boolean)) bingo = true;
-      }
+
       // diagonal principal
       if (Array.from({length: size}, (_, i) => cells[i*(size+1)].classList.contains('marked')).every(Boolean)) bingo = true;
+
       // diagonal secundaria
       if (Array.from({length: size}, (_, i) => cells[(size-1)*(i+1)].classList.contains('marked')).every(Boolean)) bingo = true;
 
@@ -165,9 +164,18 @@
     }
 
     function guardarComoImagen() {
-      const nombre = document.getElementById('playerName').value || 'Jugador';
+      const nombreInput = document.getElementById('playerName');
+      const nombre = nombreInput.value.trim();
+
+      if (!nombre) {
+        alert('Pon tu usuario');
+        nombreInput.focus();
+        return;
+      }
+
       const bingoGrid = document.getElementById('grid');
-      const mensajeBingo = document.getElementById('bingoMessage').textContent;
+      const messageDiv = document.getElementById('bingoMessage');
+      const mensajeBingo = messageDiv.style.display !== 'none' ? `🎉 ¡Bingo! Felicidades, ${nombre}!` : '';
 
       const tempDiv = document.createElement('div');
       tempDiv.style.background = '#0f172a';
@@ -187,10 +195,11 @@
       document.body.appendChild(tempDiv);
 
       html2canvas(tempDiv, {backgroundColor: null}).then(canvas => {
-        const link = document.createElement('a');
-        link.download = 'bingo.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
+const safeName = nombre.replace(/\s+/g, '_'); // reemplaza espacios por guiones bajos
+const link = document.createElement('a');
+link.download = `bingo_${safeName}.png`; // ejemplo: bingo_Chris.png
+link.href = canvas.toDataURL('image/png');
+link.click();
         document.body.removeChild(tempDiv);
       });
     }
