@@ -15,8 +15,6 @@
       justify-content: center;
       min-height: 100vh;
       margin: 0;
-      /*gap: 20px;
-      padding: 10px;*/
     }
     h1 { margin-bottom: 10px; text-align: center; }
     .grid {
@@ -40,7 +38,7 @@
       user-select: none;
       font-weight: bold;
       min-height: 80px;
-      font-size: clamp(12px, 2vw, 18px); /* texto adaptable */
+      font-size: clamp(12px, 2vw, 18px);
       word-break: break-word;
     }
     .cell.marked {
@@ -57,9 +55,7 @@
       font-weight: bold;
       margin: 5px;
     }
-    button:hover {
-      background: #16a34a;
-    }
+    button:hover { background: #16a34a; }
     #bingoMessage {
       background: #334155;
       padding: 10px 20px;
@@ -78,47 +74,25 @@
       width: 100%;
       max-width: 300px;
     }
-
-@media print {
-  body {
-    display: flex;
-    flex-direction: column;
-    align-items: center; /* centra horizontalmente */
-    justify-content: center; /* centra verticalmente */
-    height: 100vh; /* asegura que ocupe toda la página */
-    margin: 0;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-  button, #playerName {
-    display: none;
-  }
-}
-    /* Responsive para móviles */
     @media (max-width: 500px) {
-      .grid {
-        grid-template-columns: repeat(5, 1fr);
-        gap: 6px;
-      }
-      .cell {
-        min-height: 60px;
-        font-size: clamp(10px, 4vw, 16px);
-      }
+      .grid { gap: 6px; }
+      .cell { min-height: 60px; font-size: clamp(10px, 4vw, 16px); }
     }
   </style>
+
+  <!-- html2canvas -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 <body>
   <h1>Bingo de Brawlers</h1>
   <div id="bingoMessage"></div>
-<div style="display: flex; align-items: center; gap: 10px;">
-  <input type="text" id="playerName" placeholder="Escribe tu nombre" />
-  <button onclick="imprimirBingo()">🖨️ Imprimir</button>
-</div>
+  <div style="display: flex; align-items: center; gap: 10px;">
+    <input type="text" id="playerName" placeholder="Escribe tu nombre" />
+    <button onclick="guardarComoImagen()">📸 Guardar como imagen</button>
+  </div>
 
-  <!-- Elementos para imprimir -->
-  <h2 id="tituloImprimir" style="display:none; color: #000;">Bingo de Brawlers</h2>
-  <p id="nombreImprimir" style="display:none; color: #000;"></p>
   <div class="grid" id="grid"></div>
+
   <script>
     const brawlers = [
       "Ziggy","Mina","Trunk","Alli","Kaze","Jae-Yong","Finx","Lumi","Ollie","Meeple",
@@ -140,29 +114,28 @@
     let cells = [];
 
     function generateCard() {
-  const grid = document.getElementById('grid');
-  grid.innerHTML = '';
-  const randomBrawlers = shuffled(brawlers).slice(0, 25);
-  
-  // Celda central aleatoria que no repita
-  randomBrawlers[12] = shuffled(brawlers).find(name => !randomBrawlers.includes(name));
+      const grid = document.getElementById('grid');
+      grid.innerHTML = '';
+      const randomBrawlers = shuffled(brawlers).slice(0, 25);
 
-  cells = [];
-  document.getElementById('bingoMessage').style.display = 'none';
+      // Celda central aleatoria
+      randomBrawlers[12] = shuffled(brawlers).find(name => !randomBrawlers.includes(name));
 
-  randomBrawlers.forEach((name, i) => {
-    const cell = document.createElement('div');
-    cell.className = 'cell';
-    cell.textContent = name;
-    cell.addEventListener('click', () => {
-      cell.classList.toggle('marked');
-      checkBingo();
-    });
-    cells.push(cell);
-    grid.appendChild(cell);
-  });
-}
+      cells = [];
+      document.getElementById('bingoMessage').style.display = 'none';
 
+      randomBrawlers.forEach((name, i) => {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.textContent = name;
+        cell.addEventListener('click', () => {
+          cell.classList.toggle('marked');
+          checkBingo();
+        });
+        cells.push(cell);
+        grid.appendChild(cell);
+      });
+    }
 
     function checkBingo() {
       const messageDiv = document.getElementById('bingoMessage');
@@ -191,14 +164,35 @@
       }
     }
 
-    function imprimirBingo() {
+    function guardarComoImagen() {
       const nombre = document.getElementById('playerName').value || 'Jugador';
-      document.getElementById('tituloImprimir').style.display = 'block';
-      document.getElementById('nombreImprimir').textContent = 'Jugador: ' + nombre;
-      document.getElementById('nombreImprimir').style.display = 'block';
-      window.print();
-      document.getElementById('tituloImprimir').style.display = 'none';
-      document.getElementById('nombreImprimir').style.display = 'none';
+      const bingoGrid = document.getElementById('grid');
+      const mensajeBingo = document.getElementById('bingoMessage').textContent;
+
+      const tempDiv = document.createElement('div');
+      tempDiv.style.background = '#0f172a';
+      tempDiv.style.padding = '20px';
+      tempDiv.style.display = 'inline-block';
+      tempDiv.style.color = '#fff';
+      tempDiv.style.textAlign = 'center';
+
+      tempDiv.innerHTML = `<h2>Bingo de Brawlers</h2>
+                           <p>Jugador: ${nombre}</p>
+                           ${mensajeBingo ? `<div style="margin:10px 0; font-weight:bold; color:#22c55e;">${mensajeBingo}</div>` : ''}`;
+
+      const gridClone = bingoGrid.cloneNode(true);
+      gridClone.style.marginTop = '10px';
+      tempDiv.appendChild(gridClone);
+
+      document.body.appendChild(tempDiv);
+
+      html2canvas(tempDiv, {backgroundColor: null}).then(canvas => {
+        const link = document.createElement('a');
+        link.download = 'bingo.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        document.body.removeChild(tempDiv);
+      });
     }
 
     generateCard();
